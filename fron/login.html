@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - MovieStream</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+
+  <div class="bg-gray-800 border border-gray-700 rounded-2xl shadow-lg w-full max-w-md p-8 space-y-6">
+    <div class="text-center space-y-2">
+      <svg class="w-10 h-10 text-blue-500 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>
+      <h1 class="text-3xl font-bold">Bienvenido a MovieStream</h1>
+    </div>
+
+    <div class="flex justify-center space-x-4">
+      <button onclick="showForm('login')" id="btnLogin" class="text-white border-b-2 border-blue-600 pb-1">Iniciar sesión</button>
+      <button onclick="showForm('register')" id="btnRegister" class="text-gray-400 hover:text-white">Registrarse</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm" class="space-y-4">
+      <div>
+        <label class="text-sm">Usuario</label>
+        <input type="text" id="loginUsername" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="text-sm">Contraseña</label>
+        <input type="password" id="loginPassword" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold transition">Ingresar</button>
+      <p id="loginError" class="text-red-500 text-center text-sm hidden">Usuario o contraseña incorrectos</p>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form id="registerForm" class="space-y-4 hidden">
+      <div>
+        <label class="text-sm">Usuario</label>
+        <input type="text" id="registerUsername" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="text-sm">Contraseña</label>
+        <input type="password" id="registerPassword" required class="w-full bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button class="w-full bg-green-600 hover:bg-green-700 py-2 rounded-lg font-semibold transition">Crear cuenta</button>
+      <p id="registerMsg" class="text-center text-sm hidden"></p>
+    </form>
+  </div>
+
+  <script>
+    function showForm(type) {
+      const login = document.getElementById("loginForm");
+      const register = document.getElementById("registerForm");
+      const btnLogin = document.getElementById("btnLogin");
+      const btnRegister = document.getElementById("btnRegister");
+
+      if (type === "login") {
+        login.classList.remove("hidden");
+        register.classList.add("hidden");
+        btnLogin.classList.add("text-white", "border-b-2", "border-blue-600");
+        btnRegister.classList.remove("text-white");
+        btnRegister.classList.add("text-gray-400");
+      } else {
+        register.classList.remove("hidden");
+        login.classList.add("hidden");
+        btnRegister.classList.add("text-white", "border-b-2", "border-blue-600");
+        btnLogin.classList.remove("text-white");
+        btnLogin.classList.add("text-gray-400");
+      }
+    }
+
+    // Login
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("loginUsername").value;
+      const password = document.getElementById("loginPassword").value;
+
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          localStorage.setItem("token", data.token);
+          window.location.href = "index.html";
+        } else {
+          document.getElementById("loginError").classList.remove("hidden");
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById("loginError").classList.remove("hidden");
+      }
+    });
+
+    // Registro
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const username = document.getElementById("registerUsername").value;
+      const password = document.getElementById("registerPassword").value;
+
+      try {
+        const res = await fetch("http://localhost:3000/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const msg = document.getElementById("registerMsg");
+        if (res.ok) {
+          msg.textContent = "✅ Cuenta creada con éxito. Ahora inicia sesión.";
+          msg.className = "text-green-500 text-center text-sm";
+        } else {
+          const errData = await res.json();
+          msg.textContent = "❌ Error: " + (errData?.message || "Usuario ya registrado");
+          msg.className = "text-red-500 text-center text-sm";
+        }
+        msg.classList.remove("hidden");
+      } catch (err) {
+        console.error(err);
+        const msg = document.getElementById("registerMsg");
+        msg.textContent = "❌ Error en la conexión con el servidor";
+        msg.className = "text-red-500 text-center text-sm";
+        msg.classList.remove("hidden");
+      }
+    });
+
+    // Redirección si ya hay token
+    const token = localStorage.getItem("token");
+    if (token) {
+      window.location.href = "index.html";
+    }
+
+    // Si viene con ?unauthorized=1
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("unauthorized") === "1") {
+      const msg = document.createElement("p");
+      msg.className = "text-red-500 text-center text-sm mb-2";
+      msg.textContent = "Debes iniciar sesión para continuar.";
+      const form = document.getElementById("loginForm");
+      form.parentNode.insertBefore(msg, form);
+    }
+  </script>
+</body>
+</html>
